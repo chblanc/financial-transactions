@@ -1,3 +1,14 @@
+# financial payments dataset
+the wonderful folks over at kaggle have opened up a synthetic financial
+transaction dataset to the masses. this dataset contains over 500K customer
+transactions and includes information like the transaction amount, the
+transaction category, transaction merchant, and even the customer age! In
+addition, there is an binary indicator for fraudulent charges!  
+
+this repo will serve as a demo for projects/analyses that can be done with
+data science tools. specifically, we'll focus on anomaly detection, network
+analysis, and predictive modeling. 
+
 # set-up
 you will need to run a few bash scripts to get up and running 
 
@@ -10,13 +21,3 @@ you will need to run a few bash scripts to get up and running
   3. activate the conda environment `source activate fin-payments`
   4. use the `conda` installed version of rstudio via `rstudio` 
      
-# financial payments dataset
-the wonderful folks over at kaggle have opened up a synthetic financial
-transaction dataset to the masses. this dataset contains over 500K customer
-transactions and includes information like the transaction amount, the
-transaction category, transaction merchant, and even the customer age! In
-addition, there is an binary indicator for fraudulent charges!  
-
-this repo will serve as a demo for projects/analyses that can be done with
-data science tools. specifically, we'll focus on anomaly detection, network
-analysis, and predictive modeling. 

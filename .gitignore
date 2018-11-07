@@ -4,4 +4,4 @@
 .RData
 .Ruserdata
 .Rprofile
-data/*
+data/*.csv
