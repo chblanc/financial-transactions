@@ -1,0 +1,152 @@
+---
+title: "exploratory analysis"
+output: html_notebook
+---
+
+```{r echo=FALSE}
+# set chunk dir to project root dir (and not script location)
+knitr::opts_knit$set(root.dir = rstudioapi::getActiveProject())
+```
+
+```{r message=FALSE, warning=FALSE}
+# libraries
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(readr)
+library(glue)
+library(scales)
+library(ggplot2)
+library(tidygraph)
+library(ggraph)
+```
+
+```{r message=FALSE, warning=FALSE}
+# read in transactions dataset
+data <- readr::read_csv("data/bs140513_032310.csv" )
+```
+
+## data stats
+  - **`r scales::comma(nrow(data))`** transactions (records)    
+  - **`r ncol(data)`** columns  
+  - **(`r c(min(data$step), max(data$step))`**) range of transaction _days_
+    (approx 6 months)  
+  - **`r scales::comma(length(unique(data$customer)))`** unique customers  
+  - **`r scales::comma(length(unique(data$merchant)))`** unique merchants  
+  - **`r scales::comma(length(unique(data$category)))`** unique transaction categories  
+  - **`r scales::comma(sum(is.na(data)))`** missing values  
+  - **`r scales::percent(mean(data$fraud))`** fraud prevalence  
+  - **`r scales::dollar(min(data$amount))`** min transaction amount  
+  - **`r scales::dollar(mean(data$amount))`** average transaction amount  
+  - **`r scales::dollar(max(data$amount))`** max transaction amount  
+  
+## data-clean up
+There are several issues with the data that will require a bit of cleaning.
+**Note**: this is not intended to be a data/modeling pre-processing clean up
+task, instead, it will make the data appear more _life-like_. That is, `step`
+will be turned into a timestamp, and leading ticks will be removed from the
+input dataset. Run the `data-updater.R` script to make this happen.  
+
+```{sh eval=FALSE}
+# from the project root-directory
+Rscript R/data-updater.R
+```
+
+# data-exploration
+```{r message=FALSE, warning=FALSE}
+# read in transactions dataset
+transactions <- readr::read_csv("data/transactions.csv")
+```
+
+```{r}
+# data-summary
+trans_summary <- purrr::imap_dfr(transactions, ~ list(
+  varname = names(transactions[.y]),
+  num_unique = length(unique(.x)),
+  pct_unique = round(length(unique(.x))/nrow(transactions), 3), 
+  pct_missing = sum(is.na(.x))/nrow(transactions)))
+
+knitr::kable(trans_summary)
+```
+
+```{r}
+transactions %>% 
+  dplyr::group_by(transaction_dt) %>%
+  dplyr::summarise_if(is.numeric, mean) %>% 
+  qplot(transaction_dt, amount, data=.) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(label=scales::dollar) +
+  theme_bw() + 
+  ggtitle("mean amount spent", "average grouped by transaction_dt")
+```
+
+```{r}
+transactions %>% 
+  dplyr::group_by(transaction_dt, fraud) %>%
+  dplyr::summarise_if(is.numeric, mean) %>% 
+  dplyr::ungroup() %>%
+  dplyr::mutate(fraud = ifelse(fraud == 1, "fraud", "not-fraud")) %>%
+  qplot(transaction_dt, amount, data=., color=fraud) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(label=scales::dollar) +
+  theme_bw() + 
+  ggtitle("mean amount spent by fraudulent vs. non-fraudulent charges",
+          "average grouped by transaction_dt, fraud")
+```
+
+```{r}
+transactions %>% 
+  dplyr::group_by(transaction_dt, fraud, gender) %>%
+  dplyr::summarise_if(is.numeric, mean) %>% 
+  dplyr::ungroup() %>%
+  dplyr::mutate(fraud = ifelse(fraud == 1, "fraud", "not-fraud")) %>%
+  ggplot(aes(transaction_dt, amount, color=gender, alpha=.9), data=.) +
+  facet_wrap(~fraud, scales = "free") +
+  geom_point() +
+  scale_y_continuous(label=scales::dollar) +
+  theme_bw() + 
+  ggtitle("mean amount spent by gender; fraud vs. non-fraud charges",
+          "average grouped by transaction_dt, fraud, gender")
+```
+
+```{r}
+transactions %>% 
+  dplyr::group_by(transaction_dt, fraud, category) %>%
+  dplyr::summarise_if(is.numeric, mean) %>% 
+  dplyr::ungroup() %>%
+  dplyr::mutate(fraud = ifelse(fraud == 1, "fraud", "not-fraud")) %>%
+  ggplot(aes(transaction_dt, amount, color=category, alpha=.9), data=.) +
+  facet_wrap(~fraud, scales = "free") +
+  geom_point() +
+  scale_y_continuous(label=scales::dollar) +
+  theme_bw() + 
+  ggtitle("mean amount spent by category; fraud vs. non-fraud charges",
+          "average grouped by transaction_dt, fraud, category")
+```
+```{r}
+transactions %>% 
+  dplyr::group_by(transaction_dt, fraud, age) %>%
+  dplyr::summarise_if(is.numeric, mean) %>% 
+  dplyr::ungroup() %>%
+  dplyr::mutate(fraud = ifelse(fraud == 1, "fraud", "not-fraud")) %>%
+  ggplot(aes(transaction_dt, amount, color=age, alpha=.9), data=.) +
+  facet_wrap(~fraud, scales = "free") +
+  geom_point() +
+  scale_y_continuous(label=scales::dollar) +
+  theme_bw() + 
+  ggtitle("mean amount spent by age; fraud vs. non-fraud charges",
+          "average grouped by transaction_dt, fraud, age")
+```
+
+# network
+```{r, eval=FALSE}
+gtbl <- transactions %>% 
+  dplyr::select(customer, merchant, dplyr::everything())
+
+gtbl <- tidygraph::as_tbl_graph(gtbl)
+
+gtbl
+```
+
